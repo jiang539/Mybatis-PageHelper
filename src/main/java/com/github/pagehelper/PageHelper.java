@@ -189,7 +189,7 @@ public class PageHelper implements Interceptor {
             }
         }
         if (required && value == null) {
-            throw new RuntimeException("分页查询缺少必要的参数:" + paramName);
+            throw new RuntimeException("分页查询缺少必要的参数:" + PARAMS.get(paramName));
         }
         return value;
     }
@@ -202,14 +202,13 @@ public class PageHelper implements Interceptor {
      */
     private Page getPage(RowBounds rowBounds) {
         Page page = LOCAL_PAGE.get();
-        //移除本地变量
-        LOCAL_PAGE.remove();
         if (page == null) {
             if (offsetAsPageNum) {
                 page = new Page(rowBounds.getOffset(), rowBounds.getLimit(), rowBoundsWithCount);
             } else {
                 page = new Page(rowBounds, rowBoundsWithCount);
             }
+            LOCAL_PAGE.set(page);
         }
         //分页合理化
         if (page.getReasonable() == null) {
@@ -220,6 +219,22 @@ public class PageHelper implements Interceptor {
             page.setPageSizeZero(pageSizeZero);
         }
         return page;
+    }
+
+    /**
+     * 获取Page参数
+     *
+     * @return
+     */
+    public static Page getLocalPage(){
+        return LOCAL_PAGE.get();
+    }
+
+    /**
+     * 移除本地变量
+     */
+    private static void clearLocalPage(){
+        LOCAL_PAGE.remove();
     }
 
     /**
@@ -253,6 +268,8 @@ public class PageHelper implements Interceptor {
                 page.setPageSize(page.size());
                 //仍然要设置total
                 page.setTotal(page.size());
+                //清空page变量
+                clearLocalPage();
                 //返回结果仍然为Page类型 - 便于后面对接收类型的统一处理
                 return page;
             }
@@ -266,6 +283,8 @@ public class PageHelper implements Interceptor {
                 //设置总数
                 page.setTotal((Integer) ((List) result).get(0));
                 if (page.getTotal() == 0) {
+                    //清空page变量
+                    clearLocalPage();
                     return page;
                 }
             }
@@ -280,6 +299,8 @@ public class PageHelper implements Interceptor {
                 //得到处理结果
                 page.addAll((List) result);
             }
+            //清空page变量
+            clearLocalPage();
             //返回结果
             return page;
         }

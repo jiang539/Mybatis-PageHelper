@@ -47,8 +47,8 @@ public class TestDynamicWhere {
         try {
             //获取第1页，10条内容，默认查询总数count
             Map<String, Object> params = new HashMap<String, Object>(2);
-            params.put("pageNum", 1L);
-            params.put("pageSize", "100");
+            params.put("start", 1L);
+            params.put("limit", "100");
             PageHelper.startPage(params);
             Map<String, Object> where = new HashMap<String, Object>();
             where.put("id", 100);

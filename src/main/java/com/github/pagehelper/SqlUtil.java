@@ -82,7 +82,7 @@ public class SqlUtil {
 
     //数据库方言 - 使用枚举限制数据库类型
     public enum Dialect {
-        mysql, mariadb, sqlite, oracle, hsqldb, postgresql
+        mysql, mariadb, sqlite, oracle, hsqldb, postgresql, sqlserver
     }
 
     /**
@@ -184,6 +184,9 @@ public class SqlUtil {
                     break;
                 case hsqldb:
                     parser = new HsqldbParser();
+                    break;
+                case sqlserver:
+                    parser = new SqlServerbParser();
                     break;
                 case postgresql:
                 default:
@@ -336,6 +339,33 @@ public class SqlUtil {
             paramMap.put(PAGEPARAMETER_FIRST, page.getPageSize());
             paramMap.put(PAGEPARAMETER_SECOND, page.getStartRow());
             return paramMap;
+        }
+    }
+
+    //SqlServer
+    private static class SqlServerbParser extends SimpleParser {
+        @Override
+        public String getPageSql(String sql) {
+            StringBuilder sqlBuilder = new StringBuilder(200);
+            // sqlserver分页特别处理
+            int index = sql.indexOf("from") + 5;
+            String newSql = sql.substring(index);
+            int tableIndex = newSql.indexOf(" ");
+            Page page = PageHelper.getLocalPage();
+            // 当截取最好一个空格为-1时，表示不存在where条件,newSql则为表名
+            String tableName = -1 == tableIndex ? newSql : newSql.substring(0, tableIndex);
+            sqlBuilder.append("select w2.n, w1.* from ").append(tableName);
+            sqlBuilder.append(" w1, (select top ").append(page.getEndRow());
+            sqlBuilder.append(" row_number() OVER (order by id desc, ID desc) n, ID from ");
+            sqlBuilder.append(newSql);
+            sqlBuilder.append(" ) w2 where w1.ID = w2.ID and w2.n >=").append(page.getStartRow());
+            sqlBuilder.append(" order by w2.n asc");
+            return sqlBuilder.toString();
+        }
+
+        @Override
+        public Map setPageParameter(MappedStatement ms, Object parameterObject, BoundSql boundSql, Page page) {
+            return super.setPageParameter(ms, parameterObject, boundSql, page);
         }
     }
 
