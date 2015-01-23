@@ -49,7 +49,7 @@ public class TestDynamicIf {
         CountryMapper countryMapper = sqlSession.getMapper(CountryMapper.class);
         try {
             //获取第1页，10条内容，默认查询总数count
-            PageHelper.startPage(1, 10);
+//            PageHelper.startPage(1, 10);
             List<Country> list = countryMapper.selectIf(1);
             assertEquals(2, list.get(0).getId());
             assertEquals(10, list.size());

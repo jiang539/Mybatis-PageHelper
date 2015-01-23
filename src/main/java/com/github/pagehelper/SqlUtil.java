@@ -346,21 +346,28 @@ public class SqlUtil {
     private static class SqlServerbParser extends SimpleParser {
         @Override
         public String getPageSql(String sql) {
-            StringBuilder sqlBuilder = new StringBuilder(200);
-            // sqlserver分页特别处理
-            int index = sql.indexOf("from") + 5;
-            String newSql = sql.substring(index);
-            int tableIndex = newSql.indexOf(" ");
+            String orderby = "order by id";
             Page page = PageHelper.getLocalPage();
-            // 当截取最好一个空格为-1时，表示不存在where条件,newSql则为表名
-            String tableName = -1 == tableIndex ? newSql : newSql.substring(0, tableIndex);
-            sqlBuilder.append("select w2.n, w1.* from ").append(tableName);
-            sqlBuilder.append(" w1, (select top ").append(page.getEndRow());
-            sqlBuilder.append(" row_number() OVER (order by id desc, ID desc) n, ID from ");
-            sqlBuilder.append(newSql);
-            sqlBuilder.append(" ) w2 where w1.ID = w2.ID and w2.n >=").append(page.getStartRow());
-            sqlBuilder.append(" order by w2.n asc");
-            return sqlBuilder.toString();
+            // 设置分页参数
+            int pageSize = page.getPageSize();
+            int pageNo = page.getPageNum();
+            //去掉无用的空格
+            sql=sql.trim();
+            // 去掉select
+            if (sql.toLowerCase().startsWith("select")) {
+                sql = sql.substring(6);
+            }
+            StringBuffer sb=new StringBuffer();
+            sb.append("SELECT TOP ");
+            sb.append(pageSize);
+            sb.append(" * from (SELECT ROW_NUMBER() OVER (");
+            sb.append(orderby);
+            sb.append(")  frame_page_sql_row_number,");
+            sb.append(sql);
+            sb.append("  ) frame_sql_temp_table WHERE frame_page_sql_row_number > ");
+            sb.append(pageSize * (pageNo - 1));
+            sb.append(" order by frame_page_sql_row_number ");
+            return sb.toString();
         }
 
         @Override
@@ -460,7 +467,7 @@ public class SqlUtil {
     private MappedStatement getMappedStatement(MappedStatement ms, SqlSource sqlSource, Object parameterObject, String suffix) {
         MappedStatement qs = null;
         try {
-            qs = ms.getConfiguration().getMappedStatement(ms.getId() + suffix);
+            //qs = ms.getConfiguration().getMappedStatement(ms.getId() + suffix);
         } catch (Exception e) {
             //ignore
         }
@@ -578,8 +585,8 @@ public class SqlUtil {
     private List<ParameterMapping> getPageParameterMapping(Configuration configuration, BoundSql boundSql) {
         List<ParameterMapping> newParameterMappings = new ArrayList<ParameterMapping>();
         newParameterMappings.addAll(boundSql.getParameterMappings());
-        newParameterMappings.add(new ParameterMapping.Builder(configuration, PAGEPARAMETER_FIRST, Integer.class).build());
-        newParameterMappings.add(new ParameterMapping.Builder(configuration, PAGEPARAMETER_SECOND, Integer.class).build());
+//        newParameterMappings.add(new ParameterMapping.Builder(configuration, PAGEPARAMETER_FIRST, Integer.class).build());
+//        newParameterMappings.add(new ParameterMapping.Builder(configuration, PAGEPARAMETER_SECOND, Integer.class).build());
         return newParameterMappings;
     }
 
