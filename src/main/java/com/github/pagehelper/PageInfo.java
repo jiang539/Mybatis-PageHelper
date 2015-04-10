@@ -295,4 +295,8 @@ public class PageInfo<T> implements Serializable {
         sb.append('}');
         return sb.toString();
     }
+
+        public boolean isEmpty() {
+		return getList() == null ? true : getList().isEmpty();
+	}
 }
